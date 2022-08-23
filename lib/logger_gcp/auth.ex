@@ -1,25 +1,16 @@
 defmodule LoggerGCP.Auth do
   @moduledoc """
-  Handle authentication with GCP. Currently, implemented with `Goth`.
-
-  See: https://github.com/peburrows/goth
+  Authentication with Google API behaviour.
   """
 
-  def start_goth() do
-    Goth.start_link(name: LoggerGCP.Goth, source: {:refresh_token, credentials(), []})
-  end
+  alias LoggerGCP.Auth.Goth
 
-  defp credentials do
-    :logger_gcp
-    |> Application.fetch_env!(:credentials)
-    |> Keyword.take([:client_id, :client_secret, :refresh_token])
-    |> Enum.map(fn {k, v} -> {to_string(k), v} end)
-    |> Map.new()
-  end
+  @callback init() :: :ok
+  @callback fetch_token([String.t()]) :: String.t()
 
-  def fetch_token(_scopes) do
-    LoggerGCP.Goth
-    |> Goth.fetch!()
-    |> Map.fetch!(:token)
-  end
+  def init(), do: impl().init()
+
+  def fetch_token(scopes), do: impl().fetch_token(scopes)
+
+  defp impl, do: Application.get_env(:logger_gcp, :auth, Goth)
 end

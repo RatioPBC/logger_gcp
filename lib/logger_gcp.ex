@@ -36,11 +36,11 @@ defmodule LoggerGCP do
   def init do
     Process.register(self(), __MODULE__)
     init_logger_json()
-    Auth.start_goth()
+    Auth.init()
     MonitoredResource.start_link()
 
     table = create_ets_table()
-    conn = Connection.new(&Auth.fetch_token/1)
+    conn = connection_impl().new(&Auth.fetch_token/1)
 
     %__MODULE__{connection: conn, table: table}
     |> queue_next_write()
@@ -75,6 +75,8 @@ defmodule LoggerGCP do
 
     :ets.new(:noname, [:bag] ++ extra_opts)
   end
+
+  defp connection_impl, do: Application.get_env(:logger_gcp, :connection, Connection)
 
   # --- loop
 
@@ -151,10 +153,14 @@ defmodule LoggerGCP do
   end
 
   defp queue_next_write(state) do
-    timer = Process.send_after(self(), :write_timeout, @milliseconds_between_writes)
+    if Application.get_env(:logger_gcp, :write_timer, [])[:disabled] do
+      state
+    else
+      timer = Process.send_after(self(), :write_timeout, @milliseconds_between_writes)
 
-    state
-    |> cancel_timer()
-    |> Map.put(:timer, timer)
+      state
+      |> cancel_timer()
+      |> Map.put(:timer, timer)
+    end
   end
 end
