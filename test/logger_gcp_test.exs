@@ -116,7 +116,7 @@ defmodule LoggerGCPTest do
       #
       # See: https://github.com/googleapis/elixir-google-api/blob/main/clients/logging/lib/google_api/logging/v2/model/log_entry.ex
       #
-      assert %LogEntry{jsonPayload: le_json, logName: log_name} = entry
+      assert %LogEntry{jsonPayload: le_json, logName: log_name, severity: "error"} = entry
       assert ets_json == le_json
 
       # see config/test.exs

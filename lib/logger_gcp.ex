@@ -129,7 +129,9 @@ defmodule LoggerGCP do
   end
 
   defp build_write_request(entries, state) do
-    entries = for e <- entries, do: %LogEntry{jsonPayload: e, logName: state.config.log_name}
+    entries =
+      for e <- entries,
+          do: %LogEntry{jsonPayload: e, logName: state.config.log_name, severity: e["severity"]}
 
     %WriteLogEntriesRequest{
       dryRun: state.config.dry_run,
