@@ -18,6 +18,11 @@ defmodule LoggerGCPTest do
       assert :ok = Logger.configure_backend(LoggerJSON, [])
     end
 
+    test "adds LoggerJSON.Formatters.GoogleCloudLogger formatter" do
+      assert Application.fetch_env!(:logger_json, :backend)[:formatter] ==
+               LoggerJSON.Formatters.GoogleCloudLogger
+    end
+
     test "initializes MonitoredResource" do
       send_logger_gcp({:fetch_state, self()})
 

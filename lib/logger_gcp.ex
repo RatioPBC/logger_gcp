@@ -48,7 +48,18 @@ defmodule LoggerGCP do
       Application.fetch_env!(:logger, :backends)
       |> Enum.any?(&(&1 == LoggerJSON))
 
-    if lj_backend_set, do: Logger.add_backend(LoggerJSON)
+    if lj_backend_set do
+      set_gcp_formatter()
+      Logger.add_backend(LoggerJSON)
+    end
+  end
+
+  defp set_gcp_formatter do
+    new_env =
+      Application.get_env(:logger_json, :backend, [])
+      |> Keyword.merge(formatter: LoggerJSON.Formatters.GoogleCloudLogger)
+
+    Application.put_env(:logger_json, :backend, new_env)
   end
 
   defp create_ets_table do

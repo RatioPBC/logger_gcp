@@ -5,7 +5,6 @@ config :logger, backends: [LoggerJSON]
 config :logger_json,
   backend: [
     device: LoggerGCP,
-    formatter: LoggerJSON.Formatters.GoogleCloudLogger,
     json_encoder: Jason
   ]
 
