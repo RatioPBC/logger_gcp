@@ -1,7 +1,7 @@
 defmodule LoggerGCP.Test.Helpers do
   @moduledoc false
 
-  defp send_logger_gcp(message) do
+  def send_logger_gcp(message) do
     case Process.whereis(LoggerGCP) do
       nil ->
         raise "no process registered: LoggerGCP"
@@ -36,4 +36,8 @@ defmodule LoggerGCP.Test.Helpers do
       {:entries, entries} -> entries
     end
   end
+
+  # ---
+
+  def clear_entries_mock(_ \\ nil), do: LoggerGCP.Test.EntriesMock.clear()
 end

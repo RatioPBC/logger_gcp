@@ -51,7 +51,7 @@ defmodule LoggerGCP.MonitoredResource do
   defp default_node_id do
     {:ok, hostname} = :inet.gethostname()
 
-    hostname
+    to_string(hostname)
   end
 
   defp init_from_config do

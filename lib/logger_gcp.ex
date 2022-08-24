@@ -23,8 +23,6 @@ defmodule LoggerGCP do
   @select_match_spec [{{:logger_gcp, :"$1"}, [], [:"$1"]}]
   @select_count_match_spec [{{:logger_gcp, :_}, [], [true]}]
 
-  @json_encoder {Jason, :encode!}
-
   def child_spec(_),
     do: %{
       id: __MODULE__,
@@ -52,19 +50,7 @@ defmodule LoggerGCP do
       Application.fetch_env!(:logger, :backends)
       |> Enum.any?(&(&1 == LoggerJSON))
 
-    if lj_backend_set do
-      set_json_encoder()
-      Logger.add_backend(LoggerJSON)
-    end
-  end
-
-  defp set_json_encoder do
-    new_env =
-      :logger_json
-      |> Application.get_env(:backend, [])
-      |> Keyword.merge(json_encoder: @json_encoder)
-
-    Application.put_env(:logger_json, :backend, new_env)
+    if lj_backend_set, do: Logger.add_backend(LoggerJSON)
   end
 
   defp create_ets_table do
@@ -80,10 +66,11 @@ defmodule LoggerGCP do
 
   # --- loop
 
-  def loop(%__MODULE__{table: table} = state) do
+  defp loop(%__MODULE__{table: table} = state) do
     receive do
-      {:io_request, from, reply_as, {:put_chars, :unicode, data}} ->
-        :ets.insert(table, {:logger_gcp, data})
+      {:io_request, from, reply_as, {:put_chars, :unicode, entry}} ->
+        entry = Jason.decode!(entry)
+        :ets.insert(table, {:logger_gcp, entry})
         send(from, {:io_reply, reply_as, :ok})
 
         state
@@ -132,7 +119,7 @@ defmodule LoggerGCP do
 
     :ets.delete_all_objects(table)
 
-    Entries.logging_entries_write(conn, body: write_request)
+    entries_impl().logging_entries_write(conn, body: write_request)
     queue_next_write(state)
 
     state
@@ -140,8 +127,15 @@ defmodule LoggerGCP do
 
   defp build_write_request(entries) do
     entries = for e <- entries, do: %LogEntry{jsonPayload: e}
-    %WriteLogEntriesRequest{entries: entries, resource: MonitoredResource.get()}
+
+    %WriteLogEntriesRequest{
+      dryRun: Application.get_env(:logger_gcp, :dry_run, true),
+      entries: entries,
+      resource: MonitoredResource.get()
+    }
   end
+
+  defp entries_impl, do: Application.get_env(:logger_gcp, :entries, Entries)
 
   # ---
 

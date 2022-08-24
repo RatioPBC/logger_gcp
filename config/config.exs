@@ -5,7 +5,7 @@ config :logger, backends: [LoggerJSON]
 config :logger_json,
   backend: [
     device: LoggerGCP,
-    json_encoder: {Jason, :encode!}
+    json_encoder: Jason
   ]
 
 # Import environment specific config. This must remain at the bottom
