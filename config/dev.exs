@@ -1,5 +1,11 @@
 import Config
 
+config :logger_gcp,
+  id: "example-id",
+  location: "example-location",
+  namespace: "example-namespace",
+  project: "example-project"
+
 if File.exists?(Path.join("config", "dev.secret.exs")) do
   import_config("dev.secret.exs")
 else

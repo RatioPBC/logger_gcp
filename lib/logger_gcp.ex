@@ -7,16 +7,13 @@ defmodule LoggerGCP do
   See: https://www.erlang.org/doc/apps/stdlib/io_protocol.html
   """
 
-  defstruct [:connection, :table, :timer]
+  defstruct [:config, :connection, :table, :timer]
 
   alias GoogleApi.Logging.V2.Connection
-  alias GoogleApi.Logging.V2.Api.Entries
   alias GoogleApi.Logging.V2.Model.LogEntry
   alias GoogleApi.Logging.V2.Model.WriteLogEntriesRequest
 
   alias LoggerGCP.Auth
-  alias LoggerGCP.LogName
-  alias LoggerGCP.MonitoredResource
 
   @max_entries_per_write_request 100
   @milliseconds_between_writes 5_000
@@ -36,13 +33,12 @@ defmodule LoggerGCP do
     Process.register(self(), __MODULE__)
     init_logger_json()
     Auth.init()
-    LogName.init()
-    MonitoredResource.init()
 
+    config = LoggerGCP.Config.init()
     table = create_ets_table()
     conn = connection_impl().new(&Auth.fetch_token/1)
 
-    %__MODULE__{connection: conn, table: table}
+    %__MODULE__{config: config, connection: conn, table: table}
     |> queue_next_write()
     |> loop()
   end
@@ -117,10 +113,10 @@ defmodule LoggerGCP do
     write_request =
       table
       |> :ets.select(@select_match_spec)
-      |> build_write_request()
+      |> build_write_request(state)
 
-    case entries_impl().logging_entries_write(conn, body: write_request) do
-      {:ok, _} ->
+    case state.config.entries.logging_entries_write(conn, body: write_request) do
+      {:ok, _res} ->
         :ets.delete_all_objects(table)
 
       {:error, %Tesla.Env{body: body}} ->
@@ -132,17 +128,15 @@ defmodule LoggerGCP do
     state
   end
 
-  defp build_write_request(entries) do
-    entries = for e <- entries, do: %LogEntry{jsonPayload: e, logName: LogName.get()}
+  defp build_write_request(entries, state) do
+    entries = for e <- entries, do: %LogEntry{jsonPayload: e, logName: state.config.log_name}
 
     %WriteLogEntriesRequest{
-      dryRun: Application.get_env(:logger_gcp, :dry_run, true),
+      dryRun: state.config.dry_run,
       entries: entries,
-      resource: MonitoredResource.get()
+      resource: state.config.monitored_resource
     }
   end
-
-  defp entries_impl, do: Application.get_env(:logger_gcp, :entries, Entries)
 
   # ---
 
@@ -154,7 +148,7 @@ defmodule LoggerGCP do
   end
 
   defp queue_next_write(state) do
-    if Application.get_env(:logger_gcp, :write_timer, [])[:disabled] do
+    if state.config.write_timer_disabled do
       state
     else
       timer = Process.send_after(self(), :write_timeout, @milliseconds_between_writes)

@@ -18,23 +18,24 @@ defmodule LoggerGCPTest do
       assert :ok = Logger.configure_backend(LoggerJSON, [])
     end
 
-    test "initializes MonitoredResource Agent" do
-      mr = LoggerGCP.MonitoredResource.get()
+    test "initializes MonitoredResource" do
+      send_logger_gcp({:fetch_state, self()})
 
-      assert %MonitoredResource{
-               labels: labels,
-               type: type
-             } = mr
+      receive do
+        {:state, state} ->
+          assert %MonitoredResource{
+                   labels: labels,
+                   type: type
+                 } = state.config.monitored_resource
 
-      assert is_map(labels)
+          assert is_map(labels)
+          assert labels[:location] == "Earth"
+          assert labels[:namespace] == "LoggerGCP.Test"
+          assert labels[:node_id] == "test-node"
+          assert labels[:project_id] == "test-project"
 
-      for k <- [:location, :namespace, :node_id, :project_id] do
-        assert Map.has_key?(labels, k)
-        assert is_binary(labels[k])
-        assert String.length(labels[k]) > 0
+          assert type == "generic_node"
       end
-
-      assert type == "generic_node"
     end
 
     test "initializes ETS table" do
@@ -101,7 +102,7 @@ defmodule LoggerGCPTest do
                 %WriteLogEntriesRequest{
                   dryRun: true,
                   entries: [entry],
-                  resource: resource
+                  resource: %MonitoredResource{}
                 }}
              ] = LoggerGCP.Test.EntriesMock.fetch_args()
 
@@ -120,8 +121,6 @@ defmodule LoggerGCPTest do
 
       # see config/test.exs
       assert log_name == "projects/test-project/logs/test-id"
-
-      assert LoggerGCP.MonitoredResource.get() == resource
     end
   end
 end
