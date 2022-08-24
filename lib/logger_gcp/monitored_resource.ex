@@ -7,12 +7,12 @@ defmodule LoggerGCP.MonitoredResource do
 
   @monitored_resource_type "generic_node"
 
-  def start_link do
+  def init do
     Agent.start_link(
       fn ->
         %MonitoredResource{
           type: @monitored_resource_type,
-          labels: init()
+          labels: init_labels()
         }
       end,
       name: __MODULE__
@@ -23,7 +23,7 @@ defmodule LoggerGCP.MonitoredResource do
     Agent.get(__MODULE__, & &1)
   end
 
-  defp init do
+  defp init_labels do
     Enum.reduce(init_order(), %{}, fn fun, config ->
       try do
         Map.merge(fun.(), config)

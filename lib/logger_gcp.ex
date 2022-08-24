@@ -15,6 +15,7 @@ defmodule LoggerGCP do
   alias GoogleApi.Logging.V2.Model.WriteLogEntriesRequest
 
   alias LoggerGCP.Auth
+  alias LoggerGCP.LogName
   alias LoggerGCP.MonitoredResource
 
   @max_entries_per_write_request 100
@@ -35,7 +36,8 @@ defmodule LoggerGCP do
     Process.register(self(), __MODULE__)
     init_logger_json()
     Auth.init()
-    MonitoredResource.start_link()
+    LogName.init()
+    MonitoredResource.init()
 
     table = create_ets_table()
     conn = connection_impl().new(&Auth.fetch_token/1)
@@ -117,16 +119,21 @@ defmodule LoggerGCP do
       |> :ets.select(@select_match_spec)
       |> build_write_request()
 
-    :ets.delete_all_objects(table)
+    case entries_impl().logging_entries_write(conn, body: write_request) do
+      {:ok, _} ->
+        :ets.delete_all_objects(table)
 
-    entries_impl().logging_entries_write(conn, body: write_request)
+      {:error, %Tesla.Env{body: body}} ->
+        IO.warn("Google Logging API call fail:\n#{body}")
+    end
+
     queue_next_write(state)
 
     state
   end
 
   defp build_write_request(entries) do
-    entries = for e <- entries, do: %LogEntry{jsonPayload: e}
+    entries = for e <- entries, do: %LogEntry{jsonPayload: e, logName: LogName.get()}
 
     %WriteLogEntriesRequest{
       dryRun: Application.get_env(:logger_gcp, :dry_run, true),

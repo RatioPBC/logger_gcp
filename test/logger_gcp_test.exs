@@ -115,8 +115,11 @@ defmodule LoggerGCPTest do
       #
       # See: https://github.com/googleapis/elixir-google-api/blob/main/clients/logging/lib/google_api/logging/v2/model/log_entry.ex
       #
-      assert %LogEntry{jsonPayload: le_json} = entry
+      assert %LogEntry{jsonPayload: le_json, logName: log_name} = entry
       assert ets_json == le_json
+
+      # see config/test.exs
+      assert log_name == "projects/test-project/logs/test-id"
 
       assert LoggerGCP.MonitoredResource.get() == resource
     end

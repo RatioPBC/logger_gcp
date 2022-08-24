@@ -25,7 +25,7 @@ end
 defmodule LoggerGCP.Test.Behaviours.Entries do
   @callback logging_entries_write(term(),
               body: GoogleApi.Logging.V2.Model.WriteLogEntriesRequest.t()
-            ) :: term()
+            ) :: {:ok, term()} | {:error, term()}
 end
 
 defmodule LoggerGCP.Test.EntriesMock do
@@ -35,6 +35,8 @@ defmodule LoggerGCP.Test.EntriesMock do
   def logging_entries_write(conn, body: wler) do
     maybe_init()
     |> Agent.update(fn args -> [{conn, wler} | args] end)
+
+    {:ok, true}
   end
 
   def fetch_args do

@@ -13,4 +13,6 @@ config :logger_gcp,
   dry_run: true,
   entries: LoggerGCP.Test.EntriesMock,
   ets: [extra_options: [:public]],
+  id: "test-id",
+  project: "test-project",
   write_timer: [disabled: true]
