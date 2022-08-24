@@ -66,14 +66,10 @@ defmodule LoggerGCPTest do
       Logger.error("test")
       Logger.flush()
 
-      # assert [json] = fetch_entries()
-      # assert map = Jason.decode!(json)
       assert [map] = fetch_entries()
-
       assert map["message"] == "test"
-      assert map["severity"] == "error"
+      assert map["severity"] == "ERROR"
       assert {:ok, %DateTime{}, 0} = DateTime.from_iso8601(map["time"])
-      assert is_map(map["metadata"])
     end
 
     test "logs are NOT inserted for lesser level" do
@@ -116,7 +112,7 @@ defmodule LoggerGCPTest do
       #
       # See: https://github.com/googleapis/elixir-google-api/blob/main/clients/logging/lib/google_api/logging/v2/model/log_entry.ex
       #
-      assert %LogEntry{jsonPayload: le_json, logName: log_name, severity: "error"} = entry
+      assert %LogEntry{jsonPayload: le_json, logName: log_name, severity: "ERROR"} = entry
       assert ets_json == le_json
 
       # see config/test.exs
