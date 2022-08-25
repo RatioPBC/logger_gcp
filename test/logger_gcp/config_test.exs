@@ -8,6 +8,11 @@ defmodule LoggerGCP.ConfigTest do
   describe "init/0" do
     test "initializes struct" do
       assert Config.init() == %Config{
+               credentials: %{
+                 "client_id" => "<id>",
+                 "client_secret" => "<secret>",
+                 "refresh_token" => "<token>"
+               },
                dry_run: true,
                entries: LoggerGCP.Test.EntriesMock,
                log_name: "projects/test-project/logs/test-id",

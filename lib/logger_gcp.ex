@@ -30,11 +30,12 @@ defmodule LoggerGCP do
   def start_link, do: Task.start_link(__MODULE__, :init, [])
 
   def init do
+    config = LoggerGCP.Config.init()
+
     Process.register(self(), __MODULE__)
     init_logger_json()
-    Auth.init()
+    Auth.init(config.credentials)
 
-    config = LoggerGCP.Config.init()
     table = create_ets_table()
     conn = connection_impl().new(&Auth.fetch_token/1)
 

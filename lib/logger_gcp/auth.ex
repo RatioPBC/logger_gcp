@@ -5,10 +5,10 @@ defmodule LoggerGCP.Auth do
 
   alias LoggerGCP.Auth.Goth
 
-  @callback init() :: :ok
+  @callback init(map()) :: :ok
   @callback fetch_token([String.t()]) :: String.t()
 
-  def init(), do: impl().init()
+  def init(credentials), do: impl().init(credentials)
 
   def fetch_token(scopes), do: impl().fetch_token(scopes)
 

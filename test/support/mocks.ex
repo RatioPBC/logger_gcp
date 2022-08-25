@@ -2,10 +2,10 @@ defmodule LoggerGCP.Test.AuthMock do
   @behaviour LoggerGCP.Auth
 
   @impl true
-  def init, do: :ok
+  def init(_), do: :ok
 
   @impl true
-  def fetch_token(_scopes), do: "Bearer token"
+  def fetch_token(_scopes), do: "token mock"
 end
 
 # ---

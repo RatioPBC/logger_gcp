@@ -8,16 +8,8 @@ defmodule LoggerGCP.Auth.Goth do
   """
 
   @impl true
-  def init() do
-    Goth.start_link(name: LoggerGCP.Goth, source: {:refresh_token, credentials(), []})
-  end
-
-  defp credentials do
-    :logger_gcp
-    |> Application.fetch_env!(:credentials)
-    |> Keyword.take([:client_id, :client_secret, :refresh_token])
-    |> Enum.map(fn {k, v} -> {to_string(k), v} end)
-    |> Map.new()
+  def init(credentials) do
+    Goth.start_link(name: LoggerGCP.Goth, source: {:refresh_token, credentials, []})
   end
 
   @impl true
