@@ -5,7 +5,7 @@ defmodule LoggerGCP.MixProject do
     [
       app: :logger_gcp,
       version: "0.1.0",
-      elixir: "~> 1.13",
+      elixir: "~> 1.9",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps()
@@ -24,8 +24,7 @@ defmodule LoggerGCP.MixProject do
     [
       {:google_api_logging, "~> 0.45"},
       {:goth, "~> 1.3"},
-      # {:logger_json, "~> 5.0"}
-      {:logger_json, "~> 5.0", path: "../logger_json"}
+      {:logger_json, "~> 5.0"}
     ]
   end
 
