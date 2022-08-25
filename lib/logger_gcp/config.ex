@@ -80,7 +80,7 @@ defmodule LoggerGCP.Config do
       :require_provided ->
         msg =
           "config value missing: either set #{env_key} in your environment, or\n" <>
-            "\tconfig :logger_gcp, :#{config_key}, <value>"
+            "\tconfig :logger_gcp, #{inspect(config_key)}, <value>"
 
         IO.warn(msg)
         raise(msg)
@@ -93,23 +93,31 @@ defmodule LoggerGCP.Config do
   defp fetch_value(env_key, config_key, default) do
     case System.get_env(env_key) do
       nil ->
-        cond do
-          is_atom(config_key) ->
-            Application.get_env(:logger_gcp, config_key, default)
-
-          is_list(config_key) ->
-            [key | path] = config_key
-
-            :logger_gcp
-            |> Application.get_env(key, default)
-            |> get_in(path)
-
-          true ->
-            raise ArgumentError, "#{inspect(config_key)} must be an atom or a list."
+        try do
+          fetch_config_value(config_key, default)
+        catch
+          :require_provided ->
+            :require_provided
         end
 
       value ->
         value
     end
   end
+
+  defp fetch_config_value(config_key, default) when is_atom(config_key) do
+    Application.get_env(:logger_gcp, config_key, default)
+  end
+
+  defp fetch_config_value(config_key, default) when is_list(config_key) do
+    [key | path] = config_key
+
+    :logger_gcp
+    |> Application.get_env(key, default)
+    |> get_in_value(path)
+  end
+
+  defp get_in_value(:require_provided, _path), do: throw(:require_provided)
+
+  defp get_in_value(enum, path), do: get_in(enum, path)
 end

@@ -24,8 +24,7 @@ defmodule LoggerGCP.MixProject do
     [
       {:google_api_logging, "~> 0.45"},
       {:goth, "~> 1.3"},
-      # {:logger_json, "~> 5.0"}
-      {:logger_json, "~> 5.0", path: "../logger_json"}
+      {:logger_json, "~> 5.0"}
     ]
   end
 
