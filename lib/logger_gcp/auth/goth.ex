@@ -9,7 +9,7 @@ defmodule LoggerGCP.Auth.Goth do
 
   @impl true
   def init(credentials) do
-    Goth.start_link(name: LoggerGCP.Goth, source: {:refresh_token, credentials, []})
+    Goth.start_link(name: LoggerGCP.Goth, source: {:service_account, credentials})
   end
 
   @impl true

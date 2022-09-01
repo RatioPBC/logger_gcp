@@ -7,6 +7,18 @@ defmodule LoggerGCP.Config do
   alias GoogleApi.Logging.V2.Model.MonitoredResource
 
   @monitored_resource_type "generic_node"
+  @credentials_keys ~w[
+    type
+    project_id
+    private_key_id
+    private_key
+    client_email
+    client_id
+    auth_uri
+    token_uri
+    auth_provider_x509_cert_url
+    client_x509_cert_url
+  ]
 
   defstruct [
     :credentials,
@@ -29,19 +41,41 @@ defmodule LoggerGCP.Config do
   end
 
   defp init_credentials do
-    client_id = from_env("GOOGLE_CLIENT_ID", [:credentials, :client_id], :require_provided)
+    credentials = from_env("LOGGER_GCP_CREDENTIALS", :credentials, :require_provided)
 
-    client_secret =
-      from_env("GOOGLE_CLIENT_SECRET", [:credentials, :client_secret], :require_provided)
+    if is_map(credentials) do
+      validate_credentials(credentials)
+    else
+      case Jason.decode(credentials) do
+        {:ok, map} when is_map(map) ->
+          validate_credentials(map)
 
-    refresh_token =
-      from_env("GOOGLE_REFRESH_TOKEN", [:credentials, :refresh_token], :require_provided)
+        {:ok, _} ->
+          invalid_credentials(credentials)
 
-    %{
-      "client_id" => client_id,
-      "client_secret" => client_secret,
-      "refresh_token" => refresh_token
-    }
+        {:error, _} ->
+          credentials
+          |> File.read!()
+          |> Jason.decode!()
+          |> validate_credentials()
+      end
+    end
+  end
+
+  defp validate_credentials(credentials) do
+    if valid_credentials?(credentials) do
+      credentials
+    else
+      invalid_credentials(credentials)
+    end
+  end
+
+  defp valid_credentials?(map), do: Enum.all?(@credentials_keys, &Map.has_key?(map, &1))
+
+  defp invalid_credentials(credentials) do
+    msg = "invalid credentials: #{inspect(credentials)}"
+    IO.warn(msg)
+    raise ArgumentError, msg
   end
 
   defp init_log_name do
