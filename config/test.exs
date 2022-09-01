@@ -4,11 +4,7 @@ config :logger, level: :info
 
 # normal config required
 config :logger_gcp,
-  credentials: [
-    client_id: "<id>",
-    client_secret: "<secret>",
-    refresh_token: "<token>"
-  ],
+  credentials: "config/test_credentials.json",
   location: "Earth",
   log_id: "test-id",
   namespace: "LoggerGCP.Test",

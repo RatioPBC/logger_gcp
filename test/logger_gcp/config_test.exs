@@ -5,28 +5,71 @@ defmodule LoggerGCP.ConfigTest do
 
   alias LoggerGCP.Config
 
+  @credentials_env_key "LOGGER_GCP_CREDENTIALS"
+  @expected_credentials %{
+    "type" => "service_account",
+    "project_id" => "exmaple-project",
+    "private_key_id" => "abcdef0123456789abcdef0123456789abcdef01",
+    "private_key" => "-----BEGIN PRIVATE KEY-----\nexample\n-----END PRIVATE KEY-----\n",
+    "client_email" => "email@example-project.gserviceaccount.com",
+    "client_id" => "012345678901234567890",
+    "auth_uri" => "https://accounts.google.com/o/oauth2/auth",
+    "token_uri" => "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url" => "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url" =>
+      "https://www.googleapis.com/robot/v1/metadata/x509/email%40example-project.iam.gserviceaccount.com"
+  }
+
   describe "init/0" do
     test "initializes struct" do
-      assert Config.init() == %Config{
-               credentials: %{
-                 "client_id" => "<id>",
-                 "client_secret" => "<secret>",
-                 "refresh_token" => "<token>"
-               },
-               dry_run: true,
-               entries: LoggerGCP.Test.EntriesMock,
-               log_name: "projects/test-project/logs/test-id",
-               monitored_resource: %MonitoredResource{
-                 labels: %{
-                   location: "Earth",
-                   namespace: "LoggerGCP.Test",
-                   node_id: "test-node",
-                   project_id: "test-project"
-                 },
-                 type: "generic_node"
-               },
-               write_timer_disabled: true
-             }
+      assert_expected_config_struct()
+    end
+
+    test "initializes struct with config credentials" do
+      original = Application.fetch_env!(:logger_gcp, :credentials)
+      Application.put_env(:logger_gcp, :credentials, @expected_credentials)
+
+      on_exit(fn -> Application.put_env(:logger_gcp, :credentials, original) end)
+
+      assert_expected_config_struct()
+    end
+
+    test "raises if environment credentials value invalid" do
+      refute System.get_env(@credentials_env_key)
+      System.put_env(@credentials_env_key, Jason.encode!(%{invalid: "json"}))
+
+      on_exit(fn -> System.delete_env(@credentials_env_key) end)
+
+      assert_raise ArgumentError, fn -> Config.init() end
+    end
+
+    test "raises if environment credentials file invalid" do
+      refute System.get_env(@credentials_env_key)
+      System.put_env(@credentials_env_key, "mix.exs")
+
+      on_exit(fn -> System.delete_env(@credentials_env_key) end)
+
+      assert_raise Jason.DecodeError, fn -> Config.init() end
+    end
+
+    test "raises if config credentials value invalid" do
+      refute System.get_env(@credentials_env_key)
+      original = Application.fetch_env!(:logger_gcp, :credentials)
+      Application.put_env(:logger_gcp, :credentials, %{invalid: "credentials"})
+
+      on_exit(fn -> Application.put_env(:logger_gcp, :credentials, original) end)
+
+      assert_raise ArgumentError, fn -> Config.init() end
+    end
+
+    test "raises if config credentials file invalid" do
+      refute System.get_env(@credentials_env_key)
+      original = Application.fetch_env!(:logger_gcp, :credentials)
+      Application.put_env(:logger_gcp, :credentials, "mix.exs")
+
+      on_exit(fn -> Application.put_env(:logger_gcp, :credentials, original) end)
+
+      assert_raise Jason.DecodeError, fn -> Config.init() end
     end
   end
 
@@ -99,5 +142,24 @@ defmodule LoggerGCP.ConfigTest do
     if value, do: Application.put_env(:logger_gcp, config_key, "config_value_#{num}")
 
     config_key
+  end
+
+  def assert_expected_config_struct do
+    assert Config.init() == %Config{
+             credentials: @expected_credentials,
+             dry_run: true,
+             entries: LoggerGCP.Test.EntriesMock,
+             log_name: "projects/test-project/logs/test-id",
+             monitored_resource: %MonitoredResource{
+               labels: %{
+                 location: "Earth",
+                 namespace: "LoggerGCP.Test",
+                 node_id: "test-node",
+                 project_id: "test-project"
+               },
+               type: "generic_node"
+             },
+             write_timer_disabled: true
+           }
   end
 end
