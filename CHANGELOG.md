@@ -4,5 +4,5 @@
   * change from refresh token (oauth) to service account
   * add hackney for local development (verify TLS properly)
 
-## v0.1.0 (2022-08-29)
+## v0.1.0 (2022-08-25)
   * initial version, working enough for testing
