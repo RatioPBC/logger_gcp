@@ -53,15 +53,6 @@ defmodule LoggerGCPTest do
           assert Keyword.fetch!(info, :owner) == Process.whereis(LoggerGCP)
       end
     end
-
-    test "initializes connection" do
-      send_logger_gcp({:fetch_state, self()})
-
-      receive do
-        {:state, state} ->
-          assert state.connection == "connection mock"
-      end
-    end
   end
 
   describe "ETS table" do
