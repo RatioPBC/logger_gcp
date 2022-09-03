@@ -7,7 +7,7 @@ defmodule LoggerGCP do
   See: https://www.erlang.org/doc/apps/stdlib/io_protocol.html
   """
 
-  defstruct [:config, :connection, :table, :timer]
+  defstruct [:config, :table, :timer]
 
   alias GoogleApi.Logging.V2.Connection
   alias GoogleApi.Logging.V2.Model.LogEntry
@@ -37,9 +37,8 @@ defmodule LoggerGCP do
     Auth.init(config.credentials)
 
     table = create_ets_table()
-    conn = connection_impl().new(&Auth.fetch_token/1)
 
-    %__MODULE__{config: config, connection: conn, table: table}
+    %__MODULE__{config: config, table: table}
     |> queue_next_write()
     |> loop()
   end
@@ -71,8 +70,6 @@ defmodule LoggerGCP do
 
     :ets.new(:noname, [:bag] ++ extra_opts)
   end
-
-  defp connection_impl, do: Application.get_env(:logger_gcp, :connection, Connection)
 
   # --- loop
 
@@ -121,11 +118,13 @@ defmodule LoggerGCP do
   defp count_entries(table),
     do: :ets.select_count(table, @select_count_match_spec)
 
-  defp write(%__MODULE__{connection: conn, table: table} = state) do
+  defp write(%__MODULE__{table: table} = state) do
     write_request =
       table
       |> :ets.select(@select_match_spec)
       |> build_write_request(state)
+
+    conn = connection_impl().new(&Auth.fetch_token/1)
 
     case state.config.entries.logging_entries_write(conn, body: write_request) do
       {:ok, _res} ->
@@ -151,6 +150,8 @@ defmodule LoggerGCP do
       resource: state.config.monitored_resource
     }
   end
+
+  defp connection_impl, do: Application.get_env(:logger_gcp, :connection, Connection)
 
   # ---
 
